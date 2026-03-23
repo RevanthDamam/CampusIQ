@@ -1,7 +1,7 @@
 import React from 'react';
-import { FileText, Star, Clock } from 'lucide-react';
+import { FileText, Star, Clock, Download } from 'lucide-react';
 
-const NoteCard = ({ note, onView }) => {
+const NoteCard = ({ note, onView, onDownload }) => {
   return (
     <div className="bg-gpcet-card rounded-xl border border-gpcet-border p-4 hover:-translate-y-1 transition-transform duration-200 shadow-lg hover:border-gpcet-primary/30 group flex flex-col h-full relative overflow-hidden">
       
@@ -50,9 +50,16 @@ const NoteCard = ({ note, onView }) => {
 
         <button 
           onClick={() => onView(note)}
-          className="w-full py-2.5 rounded-xl border border-gpcet-primary/20 bg-gpcet-primary/10 text-gpcet-primary hover:bg-gpcet-primary hover:text-white transition-all text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95"
+          className="w-full py-2.5 rounded-xl border border-gpcet-primary/20 bg-gpcet-primary/10 text-gpcet-primary hover:bg-gpcet-primary hover:text-white transition-all text-sm font-bold shadow-[0_0_15px_rgba(59,130,246,0.1)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95 mb-2"
         >
           View PDF
+        </button>
+
+        <button 
+          onClick={(e) => { e.stopPropagation(); onDownload(note); }}
+          className="w-full py-2 rounded-xl border border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all text-xs font-bold active:scale-95 flex items-center justify-center gap-2"
+        >
+          <Download size={14} /> Download PDF
         </button>
       </div>
     </div>

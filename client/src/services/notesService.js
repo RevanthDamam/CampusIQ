@@ -39,3 +39,10 @@ export const viewNote = async (id) => {
   const response = await api.post(`/notes/${id}/view`);
   return response.data;
 };
+
+export const downloadNote = async (id) => {
+  const response = await api.get(`/notes/${id}/proxy`, {
+    responseType: 'blob'
+  });
+  return response.data;
+};

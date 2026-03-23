@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { BookOpen, Loader2, ExternalLink, Bot } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
-import { getSubjects, getNotes, viewNote } from '../services/notesService';
+import { getSubjects, getNotes, viewNote, downloadNote } from '../services/notesService';
 import NoteCard from '../components/notes/NoteCard';
 import EmptyState from '../components/common/EmptyState';
 import PDFViewer from '../components/notes/PDFViewer';
@@ -85,6 +85,23 @@ const Notes = () => {
       await viewNote(note._id);
     } catch(e) {
       console.error(e);
+    }
+  };
+
+  const handleDownloadPdf = async (note) => {
+    try {
+      const blob = await downloadNote(note._id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${note.title}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Download error:', e);
+      alert('Failed to download PDF. Please try again.');
     }
   };
 
@@ -246,7 +263,12 @@ const Notes = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
                   {filteredNotes.map(note => (
-                    <NoteCard key={note._id} note={note} onView={handleViewPdf} />
+                    <NoteCard 
+                      key={note._id} 
+                      note={note} 
+                      onView={handleViewPdf} 
+                      onDownload={handleDownloadPdf}
+                    />
                   ))}
                 </div>
               )}
