@@ -100,7 +100,9 @@ const seedData = async () => {
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL3202', name: 'Cloud Computing', type: 'nptel', credits: 3, order: 5, nptel_course_url: 'https://onlinecourses.nptel.ac.in/noc26_cs55/preview', nptel_weeks_total: 12 },
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL3203', name: 'Non-Conventional Energy Resources', type: 'nptel', credits: 3, order: 6, nptel_course_url: 'https://onlinecourses.nptel.ac.in/noc22_ge14/preview', nptel_weeks_total: 12 },
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: '23CS3204', name: 'ML Lab', type: 'lab', is_theory: false, credits: 2, order: 7 },
+      { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: '23CS3204', name: 'CNS Lab', type: 'lab', is_theory: false, credits: 2, order: 7 },
 
+      
       // CSE · Year 4 · Semester 1
       { branch: 'CSE', year: 4, semester: 1, regulation: 'R23', code: '23CS4101', name: 'Big Data Analytics', type: 'regular', credits: 4, order: 1 },
       { branch: 'CSE', year: 4, semester: 1, regulation: 'R23', code: '23CS4102', name: 'Information Security', type: 'regular', credits: 4, order: 2 },
