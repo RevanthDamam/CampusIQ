@@ -19,7 +19,7 @@ const PDFViewer = ({ note, onClose }) => {
       try {
         setLoadError(null);
         // Use the proxy route which IS authenticated (sends our JWT via the 'api' instance)
-        const response = await api.get(`/notes/${note._id}/proxy`, { 
+        const response = await api.get(`/notes/${note.id}/proxy`, { 
           responseType: 'blob'
         });
         const url = URL.createObjectURL(response.data);

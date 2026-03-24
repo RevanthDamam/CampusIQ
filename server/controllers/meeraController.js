@@ -1,5 +1,5 @@
 const Groq = require('groq-sdk');
-const Session = require('../models/Session');
+const { prisma } = require('../config/database');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -166,10 +166,12 @@ exports.chatStream = async (req, res) => {
     res.end();
 
     try {
-      await Session.create({
-        user_id: user.userId,
-        action_type: 'meera_chat',
-        subject_code: subject
+      await prisma.session.create({
+        data: {
+          user_id: user.userId,
+          action_type: 'meera_chat',
+          subject_code: subject
+        }
       });
     } catch (dbErr) {
       console.error('Failed to log Meera session:', dbErr);

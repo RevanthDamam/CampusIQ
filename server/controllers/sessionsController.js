@@ -1,13 +1,15 @@
-const Session = require('../models/Session');
+const { prisma } = require('../config/database');
 
 exports.logSession = async (req, res) => {
   try {
     const { action_type, subject_code, subject_name } = req.body;
-    await Session.create({
-      user_id: req.user.userId,
-      action_type,
-      subject_code,
-      subject_name
+    await prisma.session.create({
+      data: {
+        user_id: req.user.userId,
+        action_type,
+        subject_code,
+        subject_name
+      }
     });
     res.status(201).json({ message: 'Session logged' });
   } catch (error) {

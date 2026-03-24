@@ -82,7 +82,7 @@ const Notes = () => {
   const handleViewPdf = async (note) => {
     setViewingPdf(note);
     try {
-      await viewNote(note._id);
+      await viewNote(note.id);
     } catch(e) {
       console.error(e);
     }
@@ -90,7 +90,7 @@ const Notes = () => {
 
   const handleDownloadPdf = async (note) => {
     try {
-      const blob = await downloadNote(note._id);
+      const blob = await downloadNote(note.id);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -264,7 +264,7 @@ const Notes = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
                   {filteredNotes.map(note => (
                     <NoteCard 
-                      key={note._id} 
+                      key={note.id} 
                       note={note} 
                       onView={handleViewPdf} 
                       onDownload={handleDownloadPdf}

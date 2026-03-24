@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  role            String    // 'admin' or 'student'
+  display_name    String
+  avatar_initials String
+  branch          String?   // 'CSE', 'CAI', 'ECE', 'EEE', 'CIVIL', 'MECH'
+  year            Int?
+  semester        Int?
+  regulation      String    @default("R23")
+  roll_number     String?   @unique
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  sessions        Session[]
+  notes           Note[]
+
+  @@map("users")
+}
+
+model Subject {
+  id                String    @id @default(uuid())
+  branch            String
+  year              Int
+  semester          Int
+  regulation        String    @default("R23")
+  subject_code      String
+  subject_name      String
+  type              String    @default("regular") // 'regular', 'nptel', 'lab', 'elective'
+  credits           Float
+  is_theory         Boolean   @default(true)
+  nptel_course_url  String?
+  nptel_weeks_total Int       @default(12)
+  nptel_deadline    DateTime?
+  order             Int
+  created_at        DateTime  @default(now())
+
+  // Mongoose didn't have updated_at, but we can add mapping
+  @@map("subjects")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  user_id      String
+  action_type  String   // 'view_note', 'meera_chat', 'login'
+  subject_code String?
+  subject_name String?
+  timestamp    DateTime @default(now())
+
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, timestamp(sort: Desc)])
+  @@map("sessions")
+}
+
+model Note {
+  id                   String   @id @default(uuid())
+  branch               String
+  year                 Int
+  semester             Int
+  regulation           String   @default("R23")
+  subject_code         String
+  subject_name         String
+  subject_type         String
+  unit_number          Int
+  unit_label           String
+  title                String
+  description          String?
+  file_data            Bytes
+  file_mimetype        String   @default("application/pdf")
+  file_name            String
+  file_size_mb         Float?
+  uploaded_by          String
+  is_important         Boolean  @default(false)
+  important_message    String?
+  view_count           Int      @default(0)
+  tags                 String[] // Supported natively in unnested array by Postgres
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  uploader             User     @relation(fields: [uploaded_by], references: [id], onDelete: Cascade)
+
+  @@index([branch, year, semester, regulation, subject_code])
+  @@map("notes")
+}

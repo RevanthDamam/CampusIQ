@@ -1,12 +1,12 @@
-const User = require('../models/User');
-const Session = require('../models/Session');
+const { prisma } = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select('+password');
+    const user = await prisma.user.findUnique({ where: { email } });
+    
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -15,7 +15,7 @@ exports.login = async (req, res) => {
     if (!user.is_active) return res.status(403).json({ message: 'Account is deactivated' });
 
     const payload = {
-      userId: user._id,
+      userId: user.id,
       role: user.role,
       branch: user.branch,
       year: user.year,
@@ -35,15 +35,17 @@ exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    await Session.create({
-      user_id: user._id,
-      action_type: 'login'
+    await prisma.session.create({
+      data: {
+        user_id: user.id,
+        action_type: 'login'
+      }
     });
 
     res.json({
       accessToken,
       user: {
-        id: user._id,
+        id: user.id,
         display_name: user.display_name,
         avatar_initials: user.avatar_initials,
         role: user.role,
@@ -65,13 +67,13 @@ exports.register = async (req, res) => {
     const { display_name, email, password, roll_number, branch, year, semester } = req.body;
 
     // Check if email already exists
-    const existingEmail = await User.findOne({ email });
+    const existingEmail = await prisma.user.findUnique({ where: { email } });
     if (existingEmail) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
     // Check if roll number already exists
-    const existingRoll = await User.findOne({ roll_number: roll_number.toUpperCase() });
+    const existingRoll = await prisma.user.findUnique({ where: { roll_number: roll_number.toUpperCase() } });
     if (existingRoll) {
       return res.status(400).json({ message: 'Roll number already registered' });
     }
@@ -80,22 +82,38 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generate Avatar Initials
+    let avatar_initials = "U";
+    if (display_name) {
+      const parts = display_name.trim().split(' ');
+      if (parts.length >= 2) {
+        avatar_initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else if (parts.length === 1 && parts[0].length >= 2) {
+        avatar_initials = parts[0].substring(0, 2).toUpperCase();
+      } else if (parts.length === 1) {
+        avatar_initials = parts[0].toUpperCase() + parts[0].toUpperCase();
+      }
+    }
+
     // Create user
-    const newUser = await User.create({
-      display_name,
-      email,
-      password: hashedPassword,
-      roll_number: roll_number.toUpperCase(),
-      branch,
-      year: parseInt(year),
-      semester: parseInt(semester),
-      role: 'student',
-      regulation: 'R23'
+    const newUser = await prisma.user.create({
+      data: {
+        display_name,
+        email,
+        password: hashedPassword,
+        roll_number: roll_number.toUpperCase(),
+        branch,
+        year: parseInt(year),
+        semester: parseInt(semester),
+        role: 'student',
+        regulation: 'R23',
+        avatar_initials
+      }
     });
 
-    // Generate tokens (Same as login)
+    // Generate tokens
     const payload = {
-      userId: newUser._id,
+      userId: newUser.id,
       role: newUser.role,
       branch: newUser.branch,
       year: newUser.year,
@@ -120,15 +138,17 @@ exports.register = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    await Session.create({
-      user_id: newUser._id,
-      action_type: 'login' // Registration counts as first login
+    await prisma.session.create({
+      data: {
+        user_id: newUser.id,
+        action_type: 'login'
+      }
     });
 
     res.status(201).json({
       accessToken,
       user: {
-        id: newUser._id,
+        id: newUser.id,
         display_name: newUser.display_name,
         avatar_initials: newUser.avatar_initials,
         role: newUser.role,

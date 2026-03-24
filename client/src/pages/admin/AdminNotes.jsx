@@ -29,7 +29,7 @@ const AdminNotes = () => {
     if (!window.confirm('Are you sure you want to delete this note? This action is permanent.')) return;
     try {
       await deleteNote(id);
-      setNotes(notes.filter(n => n._id !== id));
+      setNotes(notes.filter(n => n.id !== id));
       toast.success('Note deleted successfully');
     } catch (err) {
       toast.error('Failed to delete note');
@@ -104,7 +104,7 @@ const AdminNotes = () => {
                 </tr>
               ) : (
                 filteredNotes.map(note => (
-                  <tr key={note._id} className="hover:bg-white/5 transition-colors">
+                  <tr key={note.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${note.is_important ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-gpcet-primary/10 text-gpcet-primary border border-gpcet-primary/20'}`}>
@@ -139,7 +139,7 @@ const AdminNotes = () => {
                     </td>
                     <td className="px-6 py-5">
                       <button 
-                        onClick={() => handleDelete(note._id)}
+                        onClick={() => handleDelete(note.id)}
                         className="p-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all border border-red-500/20"
                         title="Delete Permanently"
                       >

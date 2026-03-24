@@ -131,7 +131,7 @@ const AdminUpload = () => {
     if (!window.confirm('Are you sure you want to delete this note?')) return;
     try {
       await deleteNote(id);
-      setRecentNotes(recentNotes.filter(n => n._id !== id));
+      setRecentNotes(recentNotes.filter(n => n.id !== id));
       toast.success('Note deleted');
     } catch(err) {
       toast.error('Failed to delete note');
@@ -328,7 +328,7 @@ const AdminUpload = () => {
                 </tr>
               ) : (
                 recentNotes.map(note => (
-                  <tr key={note._id} className="hover:bg-white/5 transition-colors">
+                  <tr key={note.id} className="hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-bold text-gpcet-text">{note.subject_code}</div>
                       <div className="text-[10px] text-gpcet-muted mt-0.5">{note.regulation} &bull; {note.branch}</div>
@@ -345,7 +345,7 @@ const AdminUpload = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button 
-                        onClick={() => handleDelete(note._id)}
+                        onClick={() => handleDelete(note.id)}
                         className="text-xs font-bold text-red-400 hover:text-red-300 hover:underline px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
                       >
                         Delete

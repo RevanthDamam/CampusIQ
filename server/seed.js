@@ -1,49 +1,49 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const User = require('./models/User');
-const Subject = require('./models/Subject');
-const Note = require('./models/Note');
-const Session = require('./models/Session');
-const connectDB = require('./config/database');
+const { prisma } = require('./config/database');
 
 const seedData = async () => {
   try {
-    await connectDB();
-
     console.log("Starting seed process...");
 
     // STEP 1 — Clear existing data:
-    await User.deleteMany({});
-    await Subject.deleteMany({});
-    await Note.deleteMany({});
-    await Session.deleteMany({});
+    await prisma.session.deleteMany({});
+    await prisma.note.deleteMany({});
+    await prisma.subject.deleteMany({});
+    await prisma.user.deleteMany({});
     console.log("Cleared existing data.");
 
     // STEP 2 — Create admin account:
     const adminPassword = await bcrypt.hash('Admin@GPCET123', 10);
-    const admin = await User.create({
-      email: 'admin@gpcet.ac.in',
-      password: adminPassword,
-      role: 'admin',
-      display_name: 'GPCET Admin',
-      branch: 'CSE',
-      year: 1,
-      semester: 1
+    const admin = await prisma.user.create({
+      data: {
+        email: 'admin@gpcet.ac.in',
+        password: adminPassword,
+        role: 'admin',
+        display_name: 'GPCET Admin',
+        avatar_initials: 'GA',
+        branch: 'CSE',
+        year: 1,
+        semester: 1,
+        regulation: 'R23'
+      }
     });
 
     // STEP 3 — Create demo student account:
     const studentPassword = await bcrypt.hash('Student@123', 10);
-    const student = await User.create({
-      email: 'student@gpcet.ac.in',
-      password: studentPassword,
-      role: 'student',
-      display_name: 'GPCET Student',
-      roll_number: '23B91A0501',
-      branch: 'CSE',
-      year: 3,
-      semester: 2,
-      regulation: 'R23'
+    const student = await prisma.user.create({
+      data: {
+        email: 'student@gpcet.ac.in',
+        password: studentPassword,
+        role: 'student',
+        display_name: 'GPCET Student',
+        avatar_initials: 'GS',
+        roll_number: '23B91A0501',
+        branch: 'CSE',
+        year: 3,
+        semester: 2,
+        regulation: 'R23'
+      }
     });
     console.log("Created demo accounts.");
 
@@ -100,9 +100,8 @@ const seedData = async () => {
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL3202', name: 'Cloud Computing', type: 'nptel', credits: 3, order: 5, nptel_course_url: 'https://onlinecourses.nptel.ac.in/noc26_cs55/preview', nptel_weeks_total: 12 },
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL3203', name: 'Non-Conventional Energy Resources', type: 'nptel', credits: 3, order: 6, nptel_course_url: 'https://onlinecourses.nptel.ac.in/noc22_ge14/preview', nptel_weeks_total: 12 },
       { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: '23CS3204', name: 'ML Lab', type: 'lab', is_theory: false, credits: 2, order: 7 },
-      { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: '23CS3204', name: 'CNS Lab', type: 'lab', is_theory: false, credits: 2, order: 7 },
+      { branch: 'CSE', year: 3, semester: 2, regulation: 'R23', code: '23CS3205', name: 'CNS Lab', type: 'lab', is_theory: false, credits: 2, order: 8 },
 
-      
       // CSE · Year 4 · Semester 1
       { branch: 'CSE', year: 4, semester: 1, regulation: 'R23', code: '23CS4101', name: 'Big Data Analytics', type: 'regular', credits: 4, order: 1 },
       { branch: 'CSE', year: 4, semester: 1, regulation: 'R23', code: '23CS4102', name: 'Information Security', type: 'regular', credits: 4, order: 2 },
@@ -122,34 +121,48 @@ const seedData = async () => {
       { branch: 'CAI', year: 3, semester: 2, regulation: 'R23', code: '23CA3201', name: 'Natural Language Processing', type: 'regular', credits: 4, order: 1 },
       { branch: 'CAI', year: 3, semester: 2, regulation: 'R23', code: '23CA3202', name: 'Computer Vision', type: 'regular', credits: 4, order: 2 },
       { branch: 'CAI', year: 3, semester: 2, regulation: 'R23', code: '23CA3203', name: 'Reinforcement Learning', type: 'regular', credits: 3, order: 3 },
-      { branch: 'CAI', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL-CA3201', name: 'Deep Learning for Computer Vision', type: 'nptel', credits: 3, order: 4, nptel_course_url: 'https://nptel.ac.in/courses/106106184', nptel_weeks_total: 12 }
+      { branch: 'CAI', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL-CA3201', name: 'Deep Learning for Computer Vision', type: 'nptel', credits: 3, order: 4, nptel_course_url: 'https://nptel.ac.in/courses/106106184', nptel_weeks_total: 12 },
+
+      // ---> START OF EXAMPLE DEFAULT SUBJECTS FOR ALL CATEGORIES (ECE · Year 3 · Sem 2) <---
+      // 1. A 'regular' theory subject
+      { branch: 'ECE', year: 3, semester: 2, regulation: 'R23', code: '23EC3201', name: 'Microprocessors & Microcontrollers', type: 'regular', credits: 3, is_theory: true, order: 1 },
+      // 2. An 'elective' theory subject
+      { branch: 'ECE', year: 3, semester: 2, regulation: 'R23', code: '23EC3202', name: 'Internet of Things (Professional Elective)', type: 'elective', credits: 3, is_theory: true, order: 2 },
+      // 3. A 'lab' practical subject
+      { branch: 'ECE', year: 3, semester: 2, regulation: 'R23', code: '23EC3203', name: 'Microprocessors Lab', type: 'lab', credits: 2, is_theory: false, order: 3 },
+      // 4. An 'nptel' online course
+      { branch: 'ECE', year: 3, semester: 2, regulation: 'R23', code: 'NPTEL-EC3201', name: 'Introduction to Embedded Systems', type: 'nptel', credits: 3, is_theory: true, nptel_course_url: 'https://nptel.ac.in/courses/108102045', nptel_weeks_total: 12, order: 4 }
+      // ---> END OF EXAMPLE DEFAULTS <---
     ];
 
     for (let subj of subjects) {
-      await Subject.create({
-        branch: subj.branch,
-        year: subj.year,
-        semester: subj.semester,
-        regulation: subj.regulation,
-        subject_code: subj.code,
-        subject_name: subj.name,
-        type: subj.type,
-        credits: subj.credits,
-        is_theory: subj.is_theory !== false,
-        nptel_course_url: subj.nptel_course_url,
-        nptel_weeks_total: subj.nptel_weeks_total,
-        order: subj.order
+      await prisma.subject.create({
+        data: {
+          branch: subj.branch,
+          year: subj.year,
+          semester: subj.semester,
+          regulation: subj.regulation,
+          subject_code: subj.code,
+          subject_name: subj.name,
+          type: subj.type,
+          credits: subj.credits,
+          is_theory: subj.is_theory !== false,
+          nptel_course_url: subj.nptel_course_url,
+          nptel_weeks_total: subj.nptel_weeks_total,
+          order: subj.order
+        }
       });
     }
 
-    console.log("✅ GPCET CampusIQ seed complete!");
+    console.log("✅ GPCET CampusIQ seed complete for PostgreSQL!");
     console.log("   Admin  : admin@gpcet.ac.in  / Admin@GPCET123");
     console.log("   Student: student@gpcet.ac.in / Student@123");
     console.log("   Subjects seeded: CSE (all 4 years), CAI (Year 3 Sem 2)");
 
     process.exit(0);
   } catch (err) {
-    console.error("Seed error:", err);
+    console.error("Seed error message:", err.message);
+    if (err.name) console.error("Error name:", err.name);
     process.exit(1);
   }
 };

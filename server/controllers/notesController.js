@@ -1,13 +1,35 @@
-const Note = require('../models/Note');
-const Session = require('../models/Session');
-const cloudinary = require('cloudinary').v2;
-const axios = require('axios');
+const { prisma } = require('../config/database');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const NOTE_SELECT = {
+  id: true,
+  branch: true,
+  year: true,
+  semester: true,
+  regulation: true,
+  subject_code: true,
+  subject_name: true,
+  subject_type: true,
+  unit_number: true,
+  unit_label: true,
+  title: true,
+  description: true,
+  file_name: true,
+  file_mimetype: true,
+  file_size_mb: true,
+  uploaded_by: true,
+  is_important: true,
+  important_message: true,
+  view_count: true,
+  tags: true,
+  created_at: true,
+  updated_at: true,
+  uploader: {
+    select: {
+      display_name: true,
+      avatar_initials: true
+    }
+  }
+};
 
 exports.getNotes = async (req, res) => {
   try {
@@ -23,8 +45,22 @@ exports.getNotes = async (req, res) => {
       filter.unit_number = Number(unit_number);
     }
 
-    const notes = await Note.find(filter).sort({ is_important: -1, created_at: -1 }).populate('uploaded_by', 'display_name avatar_initials');
-    res.json(notes);
+    const notes = await prisma.note.findMany({
+      where: filter,
+      orderBy: [
+        { is_important: 'desc' },
+        { created_at: 'desc' }
+      ],
+      select: NOTE_SELECT
+    });
+    
+    // Format output to match existing frontend expectations if needed
+    const formattedNotes = notes.map(note => ({
+      ...note,
+      uploaded_by: note.uploader
+    }));
+    
+    res.json(formattedNotes);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -32,11 +68,19 @@ exports.getNotes = async (req, res) => {
 
 exports.getAdminNotes = async (req, res) => {
   try {
-    const notes = await Note.find({ uploaded_by: req.user.userId })
-                            .sort({ created_at: -1 })
-                            .limit(20)
-                            .populate('uploaded_by', 'display_name avatar_initials');
-    res.json(notes);
+    const notes = await prisma.note.findMany({
+      where: { uploaded_by: req.user.userId },
+      orderBy: { created_at: 'desc' },
+      take: 20,
+      select: NOTE_SELECT
+    });
+
+    const formattedNotes = notes.map(note => ({
+      ...note,
+      uploaded_by: note.uploader
+    }));
+
+    res.json(formattedNotes);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -44,29 +88,33 @@ exports.getAdminNotes = async (req, res) => {
 
 exports.createNote = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'No PDF file uploaded' });
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
     const { branch, year, semester, regulation, subject_code, subject_name, subject_type, unit_number, unit_label, title, description, is_important, important_message, tags } = req.body;
 
-    const newNote = await Note.create({
-      branch,
-      year: Number(year),
-      semester: Number(semester),
-      regulation: regulation || 'R23',
-      subject_code,
-      subject_name,
-      subject_type,
-      unit_number: Number(unit_number),
-      unit_label,
-      title,
-      description,
-      cloudinary_url: req.file.path,
-      cloudinary_public_id: req.file.filename,
-      file_size_mb: Number((req.file.size / (1024 * 1024)).toFixed(2)),
-      uploaded_by: req.user.userId,
-      is_important: is_important === 'true' || is_important === true,
-      important_message,
-      tags: tags ? tags.split(',').map(t => t.trim()) : []
+    const newNote = await prisma.note.create({
+      data: {
+        branch,
+        year: Number(year),
+        semester: Number(semester),
+        regulation: regulation || 'R23',
+        subject_code,
+        subject_name,
+        subject_type,
+        unit_number: Number(unit_number),
+        unit_label,
+        title,
+        description,
+        file_data: req.file.buffer,
+        file_mimetype: req.file.mimetype,
+        file_name: req.file.originalname,
+        file_size_mb: Number((req.file.size / (1024 * 1024)).toFixed(2)),
+        uploaded_by: req.user.userId,
+        is_important: is_important === 'true' || is_important === true,
+        important_message,
+        tags: tags ? tags.split(',').map(t => t.trim()) : []
+      },
+      select: NOTE_SELECT // Never return file_data on creation response for performance
     });
 
     res.status(201).json(newNote);
@@ -77,11 +125,16 @@ exports.createNote = async (req, res) => {
 
 exports.deleteNote = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    // We only need the ID to ensure it exists before deleting
+    const note = await prisma.note.findUnique({ 
+      where: { id: req.params.id },
+      select: { id: true }
+    });
+    
     if (!note) return res.status(404).json({ message: 'Note not found' });
-
-    await cloudinary.uploader.destroy(note.cloudinary_public_id, { resource_type: 'raw' });
-    await Note.findByIdAndDelete(req.params.id);
+    
+    await prisma.note.delete({ where: { id: req.params.id } });
+    
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -90,14 +143,21 @@ exports.deleteNote = async (req, res) => {
 
 exports.viewNote = async (req, res) => {
   try {
-    const note = await Note.findByIdAndUpdate(req.params.id, { $inc: { view_count: 1 } }, { new: true });
+    const note = await prisma.note.update({
+      where: { id: req.params.id },
+      data: { view_count: { increment: 1 } },
+      select: NOTE_SELECT
+    });
+    
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
-    await Session.create({
-      user_id: req.user.userId,
-      action_type: 'view_note',
-      subject_code: note.subject_code,
-      subject_name: note.subject_name
+    await prisma.session.create({
+      data: {
+        user_id: req.user.userId,
+        action_type: 'view_note',
+        subject_code: note.subject_code,
+        subject_name: note.subject_name
+      }
     });
 
     res.json(note);
@@ -108,20 +168,22 @@ exports.viewNote = async (req, res) => {
 
 exports.proxyPdf = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
-    if (!note) return res.status(404).json({ message: 'Note not found' });
-
-    // Direct stream now that PDF delivery is enabled in Cloudinary
-    const cloudinaryResponse = await axios.get(note.cloudinary_url, {
-      responseType: 'stream'
+    // Explicitly query ONLY the file data fields, nothing else needed
+    const note = await prisma.note.findUnique({ 
+      where: { id: req.params.id },
+      select: { file_data: true, file_mimetype: true, file_name: true, title: true }
     });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${note.title}.pdf"`);
     
-    cloudinaryResponse.data.pipe(res);
+    if (!note || !note.file_data) return res.status(404).json({ message: 'Note or file not found' });
+
+    // Send headers for browser inline viewing
+    res.setHeader('Content-Type', note.file_mimetype || 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${note.file_name || note.title + '.pdf'}"`);
+    
+    // Direct stream buffer
+    res.end(note.file_data);
   } catch (error) {
-    console.error('Proxy Error:', error.message);
-    res.status(500).json({ message: 'Failed to proxy PDF', error: error.message });
+    console.error('File Serving Error:', error.message);
+    res.status(500).json({ message: 'Failed to serve file', error: error.message });
   }
 };

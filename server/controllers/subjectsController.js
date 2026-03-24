@@ -1,4 +1,4 @@
-const Subject = require('../models/Subject');
+const { prisma } = require('../config/database');
 
 exports.getSubjects = async (req, res) => {
   try {
@@ -8,12 +8,15 @@ exports.getSubjects = async (req, res) => {
     // Defaults to the logged-in student's details.
     const filter = {
       branch: req.query.branch || branch,
-      year: req.query.year || year,
-      semester: req.query.semester || semester,
+      year: req.query.year ? Number(req.query.year) : year,
+      semester: req.query.semester ? Number(req.query.semester) : semester,
       regulation: req.query.regulation || regulation
     };
 
-    const subjects = await Subject.find(filter).sort({ order: 1 });
+    const subjects = await prisma.subject.findMany({
+      where: filter,
+      orderBy: { order: 'asc' }
+    });
 
     const grouped = {
       regular: subjects.filter(s => s.type === 'regular'),
@@ -34,7 +37,14 @@ exports.getAllSubjects = async (req, res) => {
     if (!branch || !year || !semester) {
       return res.status(400).json({ message: 'Branch, year, and semester are required' });
     }
-    const subjects = await Subject.find({ branch, year: Number(year), semester: Number(semester) }).sort({ order: 1 });
+    const subjects = await prisma.subject.findMany({ 
+      where: { 
+        branch, 
+        year: Number(year), 
+        semester: Number(semester) 
+      },
+      orderBy: { order: 'asc' } 
+    });
     res.json(subjects);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
