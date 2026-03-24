@@ -24,7 +24,12 @@ api.interceptors.response.use(
     const status = error.response.status;
     const msg = error.response.data?.message;
 
-    if (status !== 401 || (status === 401 && error.config.url.includes('/login'))) {
+    if (status === 401 && !error.config.url.includes('/login')) {
+      // Clear stale token and force login natively to prevent silent failures
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    } else if (status !== 401) {
        if (msg) toast.error(msg);
     }
 
